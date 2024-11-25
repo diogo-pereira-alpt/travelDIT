@@ -9,7 +9,7 @@ import type { Metadata } from "next";
 //    subsets: ["latin"],
 //    fallback: ["Arial", "sans-serif"],
 //  });
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Calculadora de Despesas',
   description: 'Calculadora de despesas de viagem',
 }

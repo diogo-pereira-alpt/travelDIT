@@ -3,48 +3,19 @@
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import {
-  CaptionProps,
   DateFormatter,
   DayPicker,
-  DropdownProps,
   Formatters,
-  useNavigation,
 } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./select";
+
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-function CustomCaption(props: CaptionProps) {
-  const { goToMonth, nextMonth, previousMonth } = useNavigation();
-  return (
-    <h2>
-      {format(props.displayMonth, "MMM yyy")}
-      <button
-        disabled={!previousMonth}
-        onClick={() => previousMonth && goToMonth(previousMonth)}
-      >
-        Previous
-      </button>
-      <button
-        disabled={!nextMonth}
-        onClick={() => nextMonth && goToMonth(nextMonth)}
-      >
-        Next
-      </button>
-    </h2>
-  );
-}
 //TODO: Limitar o calendario ate 1 ano?
 function Calendar({
   className,
@@ -124,8 +95,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => <ChevronLeftIcon className="h-4 w-4" />,
-        IconRight: ({ ...props }) => <ChevronRightIcon className="h-4 w-4" />,
+        IconLeft: () => <ChevronLeftIcon className="h-4 w-4" />,
+        IconRight: () => <ChevronRightIcon className="h-4 w-4" />,
         
       }}
       {...props}

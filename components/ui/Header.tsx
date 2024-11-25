@@ -3,7 +3,6 @@ import Link from "next/link";
 import Container from "./container";
 import meoLogo from "@/images/meo.png";
 
-import Image from "next/image";
 
 const Header = () => {
   return (
