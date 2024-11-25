@@ -9,10 +9,6 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: my-app  # Adiciona esta linha
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -29,11 +25,13 @@ jobs:
         run: npm run build
 
       - name: Create .nojekyll file
-        run: touch ./out/.nojekyll
+        run: |
+          touch ./out/.nojekyll
+          rm ./out/README.md || true  # Remove o README.md do build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./my-app/out  # Ajusta o caminho do publish_dir
-          
+          publish_dir: ./out
+          cname: ${{ secrets.CNAME }}

@@ -4,8 +4,8 @@ const nextConfig = {
     images: {
       unoptimized: true,
     },
-    basePath: '/calculadoraViagens', // Substitua pelo nome do seu repositório GitHub
-    assetPrefix: '/calculadoraViagens/', // Substitua pelo nome do seu repositório GitHub
+    basePath: '/travelDIT', // Substitua pelo nome do seu repositório GitHub
+    assetPrefix: '/travelDIT/', // Substitua pelo nome do seu repositório GitHub
   }
   
   module.exports = nextConfig
