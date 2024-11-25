@@ -92,7 +92,7 @@ export default function TravelExpenses() {
 Alojamento (${expenses.nights} noites): ${expenses.accommodation.toFixed(2)}€
 Transporte (${
   transport === 'train-round' 
-    ? 'CP (Porto-Lisboa) Ida e Volta' 
+    ? 'CP (Porto-Lisboa) Ida/Volta' 
     : transport === 'train-one' 
     ? 'CP (Porto-Lisboa) Só Ida ou Volta' 
     : transport === 'car' 
@@ -114,8 +114,8 @@ Total: ${expenses.total.toFixed(2)}€`
             <div className="grid gap-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="start-date" className='font-bold'>Data de Ida:</Label>
-                  <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+                <Label htmlFor="start-date" className='font-bold'>Data de Ida:</Label>
+                <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -182,7 +182,7 @@ Total: ${expenses.total.toFixed(2)}€`
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Não é necessário</SelectItem>
-                    <SelectItem value="train-round">CP Ida e Volta | Porto-Lisboa 72€</SelectItem>
+                    <SelectItem value="train-round">CP Ida/Volta | Porto-Lisboa 72€</SelectItem>
                     <SelectItem value="train-one">CP Só Ida ou Volta | Porto-Lisboa 36€</SelectItem>
                     <SelectItem value="car">Carro</SelectItem>
                   </SelectContent>
@@ -199,7 +199,7 @@ Total: ${expenses.total.toFixed(2)}€`
                         <p>Alojamento ({expenses.nights} noites): {expenses.accommodation.toFixed(2)}€</p>
                         <p>Transporte ({
                           transport === 'train-round' 
-                            ? 'CP (Porto-Lisboa) Ida e Volta' 
+                            ? 'CP (Porto-Lisboa) Ida/Volta' 
                             : transport === 'train-one' 
                             ? 'CP (Porto-Lisboa) Só Ida ou Volta' 
                             : transport === 'car' 
