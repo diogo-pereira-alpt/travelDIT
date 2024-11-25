@@ -16,10 +16,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: my-app  # Adiciona o diretório de trabalho
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,7 +23,7 @@ jobs:
       - name: Detect package manager
         id: detect-package-manager
         run: |
-          if [ -f "package.json" ]; then  # Removido ${{ github.workspace }} pois já estamos em my-app
+          if [ -f "${{ github.workspace }}/package.json" ]; then
             echo "manager=npm" >> $GITHUB_OUTPUT
             echo "command=ci" >> $GITHUB_OUTPUT
             echo "runner=npx --no-install" >> $GITHUB_OUTPUT
@@ -42,7 +38,6 @@ jobs:
         with:
           node-version: "20"
           cache: ${{ steps.detect-package-manager.outputs.manager }}
-          cache-dependency-path: my-app/package-lock.json  # Ajusta o caminho do cache
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -53,10 +48,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            my-app/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('my-app/package-lock.json') }}-${{ hashFiles('my-app/**.[jt]s', 'my-app/**.[jt]sx') }}
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
           restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('my-app/package-lock.json') }}-
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
 
       - name: Install dependencies
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
@@ -70,7 +65,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: my-app/out  # Ajusta o caminho do output
+          path: ./out
 
   deploy:
     environment:
