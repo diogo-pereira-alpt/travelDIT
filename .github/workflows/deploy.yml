@@ -9,6 +9,10 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: my-app  # Importante: adicione esta linha porque seu .git está fora da pasta my-app
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -25,13 +29,10 @@ jobs:
         run: npm run build
 
       - name: Create .nojekyll file
-        run: |
-          touch ./out/.nojekyll
-          rm ./out/README.md || true  # Remove o README.md do build
+        run: touch ./out/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out
-          cname: ${{ secrets.CNAME }}
+          publish_dir: ./my-app/out  # Importante: ajuste o caminho para incluir my-app
