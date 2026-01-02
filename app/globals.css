@@ -117,7 +117,7 @@
 }
 
 body {
-  font-family: "Montserrat",sans-serif;
+  font-family: "meo-text-extended", "MEO Text", "Montserrat", Arial, sans-serif;
 }
 
 @layer base {
@@ -192,6 +192,31 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Prevent hover effects on disabled or active buttons */
+button:disabled:hover {
+  cursor: not-allowed;
+}
+
+/* Ensure buttons don't overflow on small screens */
+@media (max-width: 640px) {
+  button {
+    @apply text-xs;
+  }
+  
+  .container {
+    @apply px-2;
+  }
+}
+
+/* Fix button text truncation */
+button {
+  @apply overflow-hidden;
+}
+
+button span {
+  @apply truncate;
 }
 
 

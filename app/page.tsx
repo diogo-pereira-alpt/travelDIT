@@ -266,12 +266,7 @@ ${noites > 0 ? `Estadia: 83,30 Eur / noite / pessoa ${estadiaCusto.toFixed(2)}�
 City Tax: 4,00 Eur / noite / pessoa ${cityTaxCusto.toFixed(2)}€` : ''}${transporteCusto > 0 ? `
 Comboio ${transporteCusto.toFixed(0)} Eur (${formData.tem_regresso ? 'ida e volta' : 'apenas ida'})` : ''}
  
-Total: ${totalCusto.toFixed(2)}€
- 
-Obrigado desde já,
-Os meus cumprimentos,
-
-${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
+Total: ${totalCusto.toFixed(2)}€`
 
     return content
   }, [formData])
@@ -775,7 +770,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
-      className="flex justify-between mt-4 pt-4 border-t border-gray-200"
+      className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-4 pt-4 border-t border-gray-200"
     >
       <motion.div
         whileHover={{ scale: 1.02 }}
@@ -805,7 +800,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           <Button
             onClick={nextStep}
             disabled={!isStepCompleted(currentStep)}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed relative group"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed disabled:hover:from-gray-400 disabled:hover:to-gray-500 relative group"
             title="Avançar (Enter ou →)"
           >
             Próximo
@@ -818,19 +813,20 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           </Button>
         </motion.div>
       ) : (
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            className="flex-1 sm:flex-initial"
           >
             <Button
               onClick={sendEmail}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 relative group"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 relative group"
               title="Enviar Email (Ctrl+E)"
             >
               <Send className="h-4 w-4" />
-              Enviar Email
-              <kbd className="hidden group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+              <span className="whitespace-nowrap">Enviar Email</span>
+              <kbd className="hidden sm:group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
                 Ctrl + E
               </kbd>
             </Button>
@@ -838,11 +834,12 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            className="flex-1 sm:flex-initial"
           >
             <Button
               onClick={generateExcel}
               disabled={isGeneratingExcel}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 relative group"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 relative group"
               title="Download Excel (Ctrl+D)"
             >
               {isGeneratingExcel ? (
@@ -859,8 +856,8 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
               ) : (
                 <>
                   <Download className="h-4 w-4" />
-                  Download Excel
-                  <kbd className="hidden group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+                  <span className="whitespace-nowrap">Download Excel</span>
+                  <kbd className="hidden sm:group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
                     Ctrl + D
                   </kbd>
                 </>
@@ -1362,6 +1359,28 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           className="text-sm h-9 mt-1 w-full"
                         />
                       </div>
+                      {/* Alfa Pendular schedule suggestions for Porto-Lisboa */}
+                      {(formData.comboio_ida.local_partida.toLowerCase().includes('porto') && 
+                        formData.comboio_ida.local_chegada.toLowerCase().includes('lisboa')) && (
+                        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-xs font-semibold text-blue-800 mb-1">Horários Alfa Pendular Porto → Lisboa (CP.pt):</p>
+                          <div className="flex flex-wrap gap-1">
+                            {['06:00', '07:00', '08:00', '09:30', '11:00', '13:00', '15:00', '17:00', '19:00', '21:00'].map(time => (
+                              <button
+                                key={time}
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  comboio_ida: { ...prev.comboio_ida, hora: time }
+                                }))}
+                                className="px-2 py-1 text-xs bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors"
+                              >
+                                {time}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-blue-600 mt-1">Preço: 75€ (corporativo primeira classe)</p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
 
@@ -1407,6 +1426,28 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                               className="text-sm h-9 mt-1 w-full"
                             />
                           </div>
+                          {/* Alfa Pendular schedule suggestions for Lisboa-Porto */}
+                          {(formData.comboio_regresso.local_partida.toLowerCase().includes('lisboa') && 
+                            formData.comboio_regresso.local_chegada.toLowerCase().includes('porto')) && (
+                            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                              <p className="text-xs font-semibold text-blue-800 mb-1">Horários Alfa Pendular Lisboa → Porto (CP.pt):</p>
+                              <div className="flex flex-wrap gap-1">
+                                {['06:30', '07:30', '09:00', '11:00', '13:00', '15:00', '17:00', '19:00', '21:00'].map(time => (
+                                  <button
+                                    key={time}
+                                    onClick={() => setFormData(prev => ({
+                                      ...prev,
+                                      comboio_regresso: { ...prev.comboio_regresso, hora: time }
+                                    }))}
+                                    className="px-2 py-1 text-xs bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors"
+                                  >
+                                    {time}
+                                  </button>
+                                ))}
+                              </div>
+                              <p className="text-xs text-blue-600 mt-1">Preço: 75€ (corporativo primeira classe)</p>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )}
