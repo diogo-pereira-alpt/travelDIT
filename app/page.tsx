@@ -86,6 +86,13 @@ export default function TravelExpenses() {
     }
   }, [startDate, endDate, transport])
 
+  useEffect(() => {
+    if (copied) {
+      const timeoutId = setTimeout(() => setCopied(false), 2000)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [copied])
+
   const copyToClipboard = async () => {
     if (!startDate || !endDate) return
 
@@ -105,7 +112,6 @@ Total: ${expenses.total.toFixed(2)}€`
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Failed to copy:', err)
     }
