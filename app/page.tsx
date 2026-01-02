@@ -208,7 +208,7 @@ export default function TravelCalculator() {
     
     let transporteCusto = 0
     if (formData.tem_transporte && formData.tipo_transporte === 'comboio') {
-      transporteCusto = formData.tem_regresso ? 72.00 : 36.00
+      transporteCusto = formData.tem_regresso ? 75.00 : 37.50
     }
 
     const totalCusto = estadiaCusto + cityTaxCusto + transporteCusto
@@ -293,6 +293,26 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
   useEffect(() => {
     localStorage.setItem('travelCalculator_colaborador', JSON.stringify(formData.colaborador))
   }, [formData.colaborador])
+
+  // Sync hotel dates with train travel dates when hotel is selected
+  useEffect(() => {
+    if (formData.tem_hotel && formData.comboio_ida.data) {
+      // Only update if hotel dates are not yet set
+      if (!formData.alojamento.data_chegada) {
+        setFormData(prev => ({
+          ...prev,
+          alojamento: {
+            ...prev.alojamento,
+            data_chegada: prev.comboio_ida.data,
+            data_partida: prev.tem_regresso && prev.comboio_regresso.data 
+              ? prev.comboio_regresso.data 
+              : prev.comboio_ida.data
+          }
+        }))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.tem_hotel, formData.comboio_ida.data, formData.comboio_regresso.data, formData.tem_regresso])
 
   // Step validation
   const isStepCompleted = useCallback((step: QuizStep): boolean => {
@@ -1134,7 +1154,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                         </div>
                         <div>
                           <h3 className="font-semibold text-sm">Comboio</h3>
-                          <p className="text-xs text-gray-600">36€ ida | 72€ volta</p>
+                          <p className="text-xs text-gray-600">37,50€ ida | 75€ volta</p>
                         </div>
                         {formData.tem_transporte && formData.tipo_transporte === 'comboio' ? (
                           <Badge className="bg-green-100 text-green-700 text-xs">Selecionado</Badge>
@@ -1235,7 +1255,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-green-700 font-bold">
-                      {formData.tem_regresso ? '72€' : '36€'}
+                      {formData.tem_regresso ? '75€' : '37,50€'}
                     </span>
                     <div className="relative">
                       <input
@@ -1416,7 +1436,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                     </div>
                     <div className="text-right">
                       <div className="text-3xl font-bold text-green-700">
-                        {formData.tem_regresso ? '72€' : '36€'}
+                        {formData.tem_regresso ? '75€' : '37,50€'}
                       </div>
                     </div>
                   </div>
@@ -1677,7 +1697,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           Comboio {formData.tem_regresso ? '(ida e volta)' : '(apenas ida)'}
                         </span>
                         <span className="font-bold text-green-700">
-                          {formData.tem_regresso ? '72€' : '36€'}
+                          {formData.tem_regresso ? '75€' : '37,50€'}
                         </span>
                       </div>
                     </div>

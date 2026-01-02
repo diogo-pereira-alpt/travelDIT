@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Lock, Shield, AlertTriangle, CheckCircle, X } from 'lucide-react'
+import { Lock, Shield, AlertTriangle, CheckCircle } from 'lucide-react'
 import meoLogo from "@/images/meo.png"
 
 interface AuthProps {
