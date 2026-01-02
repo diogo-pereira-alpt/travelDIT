@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { DatePicker } from "@/components/ui/date-picker"
 import { TimePicker } from "@/components/ui/time-picker"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
@@ -20,27 +19,22 @@ import {
   SelectValue
 } from "@/components/ui/select"
 import {
-  Calendar,
-  MapPin,
   Hotel,
   Train,
   User,
   Mail,
   Download,
-  Clock,
   Euro,
   FileText,
   Send,
-  Settings,
-  Eye,
-  EyeOff,
-  MessageSquare,
   ChevronRight,
   ChevronLeft,
   Check,
   X,
   Plane,
-  Car
+  Car,
+  HelpCircle,
+  Keyboard
 } from 'lucide-react'
 import meoLogo from "@/images/meo.png"
 import { generateExcelFromTemplate, setToastHandler } from "@/components/ExcelTemplate"
@@ -179,6 +173,7 @@ export default function TravelCalculator() {
 
   const [emailContent, setEmailContent] = useState('')
   const [error, setError] = useState('')
+  const [showHelp, setShowHelp] = useState(false)
 
   // Verificar se já está autenticado no localStorage
   useEffect(() => {
@@ -205,7 +200,7 @@ export default function TravelCalculator() {
   }
 
   // Calculate costs
-  const calculateCosts = () => {
+  const calculateCosts = useCallback(() => {
     const noites = formData.tem_hotel ? calculateNights(formData.alojamento.data_chegada, formData.alojamento.data_partida) : 0
     const estadiaCusto = noites * 83.30
     const cityTaxCusto = noites * 4.00
@@ -224,7 +219,7 @@ export default function TravelCalculator() {
       transporteCusto,
       totalCusto
     }
-  }
+  }, [formData.tem_hotel, formData.alojamento.data_chegada, formData.alojamento.data_partida, formData.tem_transporte, formData.tipo_transporte, formData.tem_regresso])
 
   // Generate email content
   const generateEmailContent = useCallback(() => {
@@ -298,6 +293,126 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     localStorage.setItem('travelCalculator_colaborador', JSON.stringify(formData.colaborador))
   }, [formData.colaborador])
 
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+      
+      // Help panel toggle (? or F1)
+      if ((e.key === '?' && !isInputField) || e.key === 'F1') {
+        e.preventDefault()
+        setShowHelp(prev => !prev)
+        return
+      }
+
+      // Close help with Escape
+      if (e.key === 'Escape' && showHelp) {
+        e.preventDefault()
+        setShowHelp(false)
+        return
+      }
+      
+      // Navigation shortcuts (only when not in input field and help is closed)
+      if (!isInputField && !showHelp) {
+        // Enter to proceed to next step (if current step is valid)
+        if (e.key === 'Enter' && currentStep !== 'preview' && isStepCompleted(currentStep)) {
+          e.preventDefault()
+          nextStep()
+          return
+        }
+        
+        // Escape to go back
+        if (e.key === 'Escape' && currentStep !== 'inicio') {
+          e.preventDefault()
+          prevStep()
+          return
+        }
+        
+        // Arrow keys for navigation
+        if (e.key === 'ArrowRight' && currentStep !== 'preview' && isStepCompleted(currentStep)) {
+          e.preventDefault()
+          nextStep()
+          return
+        }
+        
+        if (e.key === 'ArrowLeft' && currentStep !== 'inicio') {
+          e.preventDefault()
+          prevStep()
+          return
+        }
+
+        // Keyboard shortcuts for preview step
+        if (currentStep === 'preview') {
+          // Ctrl+E for email
+          if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault()
+            sendEmail()
+            return
+          }
+          // Ctrl+D for download
+          if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault()
+            generateExcel()
+            return
+          }
+        }
+
+        // Number shortcuts for quick selection in certain steps
+        if (currentStep === 'motivo' && e.key >= '1' && e.key <= '6') {
+          e.preventDefault()
+          const options = [
+            'Reunião com cliente',
+            'Formação técnica',
+            'Conferência',
+            'Workshop',
+            'Hackathon',
+            'Evento corporativo'
+          ]
+          const index = parseInt(e.key) - 1
+          if (options[index]) {
+            setFormData(prev => ({ ...prev, motivoViagem: options[index] }))
+          }
+          return
+        }
+
+        // Number shortcuts for transport selection
+        if (currentStep === 'transporte' && e.key >= '1' && e.key <= '4') {
+          e.preventDefault()
+          const transportOptions = [
+            { tem: false, tipo: 'nenhum' as const },
+            { tem: true, tipo: 'comboio' as const },
+            { tem: true, tipo: 'aviao' as const },
+            { tem: true, tipo: 'carro' as const }
+          ]
+          const option = transportOptions[parseInt(e.key) - 1]
+          if (option) {
+            setFormData(prev => ({ ...prev, tem_transporte: option.tem, tipo_transporte: option.tipo }))
+          }
+          return
+        }
+
+        // Y/N shortcuts for hotel step
+        if (currentStep === 'hotel') {
+          if (e.key.toLowerCase() === 'y' || e.key.toLowerCase() === 's') {
+            e.preventDefault()
+            setFormData(prev => ({ ...prev, tem_hotel: true }))
+            return
+          }
+          if (e.key.toLowerCase() === 'n') {
+            e.preventDefault()
+            setFormData(prev => ({ ...prev, tem_hotel: false }))
+            return
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentStep, showHelp, formData, isStepCompleted, nextStep, prevStep, sendEmail, generateExcel])
+
   // Send email
   const sendEmail = useCallback(() => {
     const subject = encodeURIComponent('Pedido de Viagem')
@@ -310,7 +425,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
   const [isGeneratingExcel, setIsGeneratingExcel] = useState(false)
   
   // Generate Excel
-  const generateExcel = async () => {
+  const generateExcel = useCallback(async () => {
     if (isGeneratingExcel) return // Prevent multiple clicks
     
     try {
@@ -376,10 +491,10 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     } finally {
       setIsGeneratingExcel(false)
     }
-  }
+  }, [isGeneratingExcel, formData, addToast])
 
   // Navigation functions
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     const steps: QuizStep[] = ['inicio', 'motivo', 'transporte', 'comboio_detalhes', 'hotel', 'datas', 'preview']
     const currentIndex = steps.indexOf(currentStep)
 
@@ -392,9 +507,9 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1])
     }
-  }
+  }, [currentStep, formData.tipo_transporte])
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     const steps: QuizStep[] = ['inicio', 'motivo', 'transporte', 'comboio_detalhes', 'hotel', 'datas', 'preview']
     const currentIndex = steps.indexOf(currentStep)
 
@@ -407,7 +522,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1])
     }
-  }
+  }, [currentStep, formData.tipo_transporte])
 
   const goToStep = (step: QuizStep) => {
     setCurrentStep(step)
@@ -429,7 +544,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     return formData.tipo_transporte === 'comboio' ? 7 : 6
   }
 
-  const isStepCompleted = (step: QuizStep): boolean => {
+  const isStepCompleted = useCallback((step: QuizStep): boolean => {
     switch (step) {
       case 'inicio':
         // Verificar se todos os campos obrigatórios do colaborador estão preenchidos
@@ -457,7 +572,136 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
       default:
         return false
     }
-  }
+  }, [formData])
+
+  // Help Panel Component
+  const renderHelpPanel = () => (
+    <AnimatePresence>
+      {showHelp && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          onClick={() => setShowHelp(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: "spring", duration: 0.3 }}
+            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Keyboard className="h-6 w-6" />
+                  <h2 className="text-2xl font-bold">Atalhos de Teclado</h2>
+                </div>
+                <button
+                  onClick={() => setShowHelp(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Global shortcuts */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  🌐 Navegação Global
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-700">Avançar para próximo passo</span>
+                    <kbd className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm font-mono text-sm">Enter</kbd>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-700">Voltar ao passo anterior</span>
+                    <kbd className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm font-mono text-sm">Esc</kbd>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-700">Navegação com setas</span>
+                    <div className="flex gap-2">
+                      <kbd className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm font-mono text-sm">←</kbd>
+                      <kbd className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm font-mono text-sm">→</kbd>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-700">Mostrar/Ocultar ajuda</span>
+                    <div className="flex gap-2">
+                      <kbd className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm font-mono text-sm">?</kbd>
+                      <kbd className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm font-mono text-sm">F1</kbd>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step-specific shortcuts */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  📝 Atalhos por Passo
+                </h3>
+                <div className="space-y-4">
+                  <div className="border-l-4 border-amber-400 pl-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">Passo 2: Motivo da Viagem</h4>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">1</kbd> Reunião com cliente</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">2</kbd> Formação técnica</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">3</kbd> Conferência</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">4</kbd> Workshop</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">5</kbd> Hackathon</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">6</kbd> Evento corporativo</p>
+                    </div>
+                  </div>
+
+                  <div className="border-l-4 border-green-400 pl-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">Passo 3: Transporte</h4>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">1</kbd> Não preciso</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">2</kbd> Comboio</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">3</kbd> Avião</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">4</kbd> Carro/Aluguer</p>
+                    </div>
+                  </div>
+
+                  <div className="border-l-4 border-purple-400 pl-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">Passo 5: Alojamento</h4>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">Y</kbd> ou <kbd className="px-2 py-0.5 bg-white border rounded font-mono">S</kbd> Sim, preciso</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">N</kbd> Não preciso</p>
+                    </div>
+                  </div>
+
+                  <div className="border-l-4 border-indigo-400 pl-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">Passo 7: Preview</h4>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">Ctrl</kbd> + <kbd className="px-2 py-0.5 bg-white border rounded font-mono">E</kbd> Enviar Email</p>
+                      <p><kbd className="px-2 py-0.5 bg-white border rounded font-mono">Ctrl</kbd> + <kbd className="px-2 py-0.5 bg-white border rounded font-mono">D</kbd> Download Excel</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tips */}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  💡 Dica
+                </h3>
+                <p className="text-sm text-blue-700">
+                  Use <kbd className="px-2 py-0.5 bg-white border rounded font-mono text-xs">Tab</kbd> para navegar entre campos e
+                  <kbd className="px-2 py-0.5 bg-white border rounded font-mono text-xs ml-1">Enter</kbd> para avançar quando o passo estiver completo.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 
   // Render progress bar
   const renderProgressBar = () => {
@@ -520,10 +764,14 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           variant="outline"
           onClick={prevStep}
           disabled={currentStep === 'inicio'}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 relative group"
+          title="Voltar (Esc ou ←)"
         >
           <ChevronLeft className="h-4 w-4" />
           Anterior
+          <kbd className="hidden group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+            Esc / ←
+          </kbd>
         </Button>
       </motion.div>
 
@@ -535,10 +783,16 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           <Button
             onClick={nextStep}
             disabled={!isStepCompleted(currentStep)}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed relative group"
+            title="Avançar (Enter ou →)"
           >
             Próximo
             <ChevronRight className="h-4 w-4" />
+            {isStepCompleted(currentStep) && (
+              <kbd className="hidden group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+                Enter / →
+              </kbd>
+            )}
           </Button>
         </motion.div>
       ) : (
@@ -549,10 +803,14 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           >
             <Button
               onClick={sendEmail}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 relative group"
+              title="Enviar Email (Ctrl+E)"
             >
               <Send className="h-4 w-4" />
               Enviar Email
+              <kbd className="hidden group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+                Ctrl + E
+              </kbd>
             </Button>
           </motion.div>
           <motion.div
@@ -562,7 +820,8 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
             <Button
               onClick={generateExcel}
               disabled={isGeneratingExcel}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50"
+              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 relative group"
+              title="Download Excel (Ctrl+D)"
             >
               {isGeneratingExcel ? (
                 <>
@@ -579,6 +838,9 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                 <>
                   <Download className="h-4 w-4" />
                   Download Excel
+                  <kbd className="hidden group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+                    Ctrl + D
+                  </kbd>
                 </>
               )}
             </Button>
@@ -682,6 +944,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                             }`}
                             placeholder={field.required ? 'Campo obrigatório' : 'Opcional'}
                             required={field.required}
+                            autoFocus={index === 0}
                           />
                         </motion.div>
                       </motion.div>
@@ -760,10 +1023,16 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                         onChange={(e) => setFormData(prev => ({ ...prev, motivoViagem: e.target.value }))}
                         placeholder="Ex: Hackathon de dia 16, 18 e 19"
                         className="bg-white/70 text-lg p-4 transition-all duration-200 focus:bg-white"
+                        autoFocus
                       />
                     </motion.div>
                     <p className="text-xs text-gray-500">
-                      💡 Apenas o motivo (ex: "Reunião com cliente", "Formação técnica", "Conferência")
+                      💡 Apenas o motivo (ex: &ldquo;Reunião com cliente&rdquo;, &ldquo;Formação técnica&rdquo;, &ldquo;Conferência&rdquo;)
+                    </p>
+                  </div>
+                  <div className="p-2 bg-amber-50 rounded-lg border border-amber-200">
+                    <p className="text-xs text-amber-700 text-center">
+                      ⌨️ Ou use as teclas <kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">1</kbd>-<kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">6</kbd> para selecionar rapidamente
                     </p>
                   </div>
                   <motion.div
@@ -773,12 +1042,12 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                     className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6"
                   >
                     {[
-                      { emoji: '📊', text: 'Reunião com cliente' },
-                      { emoji: '🎓', text: 'Formação técnica' },
-                      { emoji: '🎤', text: 'Conferência' },
-                      { emoji: '🔧', text: 'Workshop' },
-                      { emoji: '💻', text: 'Hackathon' },
-                      { emoji: '🏢', text: 'Evento corporativo' }
+                      { emoji: '📊', text: 'Reunião com cliente', key: '1' },
+                      { emoji: '🎓', text: 'Formação técnica', key: '2' },
+                      { emoji: '🎤', text: 'Conferência', key: '3' },
+                      { emoji: '🔧', text: 'Workshop', key: '4' },
+                      { emoji: '💻', text: 'Hackathon', key: '5' },
+                      { emoji: '🏢', text: 'Evento corporativo', key: '6' }
                     ].map((option, index) => (
                       <motion.div
                         key={option.text}
@@ -791,9 +1060,15 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                         <Button
                           variant="outline"
                           onClick={() => setFormData(prev => ({ ...prev, motivoViagem: option.text }))}
-                          className="text-left justify-start h-auto p-3 transition-all duration-200 hover:bg-amber-50"
+                          className="text-left justify-start h-auto p-3 transition-all duration-200 hover:bg-amber-50 relative group"
+                          title={`Pressione ${option.key} para selecionar`}
                         >
-                          {option.emoji} {option.text}
+                          <span className="flex items-center gap-2 w-full">
+                            {option.emoji} {option.text}
+                            <kbd className="ml-auto px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded font-mono opacity-60 group-hover:opacity-100 transition-opacity">
+                              {option.key}
+                            </kbd>
+                          </span>
                         </Button>
                       </motion.div>
                     ))}
@@ -820,12 +1095,18 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
             </CardHeader>
             <CardContent className="p-4 flex-1 flex flex-col min-h-0">
               <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="mb-3 p-2 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-xs text-green-700 text-center">
+                    💡 Use as teclas <kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">1</kbd>-<kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">4</kbd> para selecionar rapidamente
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3 mb-4 mt-4 p-1">
                   <Card
                     className={`cursor-pointer transition-all duration-200 ${
                       !formData.tem_transporte ? 'ring-2 ring-red-500 bg-red-50' : 'hover:shadow-md'
                     }`}
                     onClick={() => setFormData(prev => ({ ...prev, tem_transporte: false, tipo_transporte: 'nenhum' }))}
+                    title="Pressione 1 para selecionar"
                   >
                     <CardContent className="p-3 text-center">
                       <div className="flex flex-col items-center gap-2">
@@ -836,8 +1117,10 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           <h3 className="font-semibold text-sm">Não preciso</h3>
                           <p className="text-xs text-gray-600">Transporte próprio</p>
                         </div>
-                        {!formData.tem_transporte && (
+                        {!formData.tem_transporte ? (
                           <Badge className="bg-red-100 text-red-700 text-xs">Selecionado</Badge>
+                        ) : (
+                          <kbd className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">1</kbd>
                         )}
                       </div>
                     </CardContent>
@@ -848,6 +1131,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                       formData.tem_transporte && formData.tipo_transporte === 'comboio' ? 'ring-2 ring-green-500 bg-green-50' : 'hover:shadow-md'
                     }`}
                     onClick={() => setFormData(prev => ({ ...prev, tem_transporte: true, tipo_transporte: 'comboio' }))}
+                    title="Pressione 2 para selecionar"
                   >
                     <CardContent className="p-3 text-center">
                       <div className="flex flex-col items-center gap-2">
@@ -858,8 +1142,10 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           <h3 className="font-semibold text-sm">Comboio</h3>
                           <p className="text-xs text-gray-600">36€ ida | 72€ volta</p>
                         </div>
-                        {formData.tem_transporte && formData.tipo_transporte === 'comboio' && (
+                        {formData.tem_transporte && formData.tipo_transporte === 'comboio' ? (
                           <Badge className="bg-green-100 text-green-700 text-xs">Selecionado</Badge>
+                        ) : (
+                          <kbd className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">2</kbd>
                         )}
                       </div>
                     </CardContent>
@@ -872,6 +1158,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                       formData.tem_transporte && formData.tipo_transporte === 'aviao' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
                     }`}
                     onClick={() => setFormData(prev => ({ ...prev, tem_transporte: true, tipo_transporte: 'aviao' }))}
+                    title="Pressione 3 para selecionar"
                   >
                     <CardContent className="p-3 text-center">
                       <div className="flex flex-col items-center gap-2">
@@ -882,8 +1169,10 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           <h3 className="font-semibold text-sm">Avião</h3>
                           <p className="text-xs text-gray-600">A definir</p>
                         </div>
-                        {formData.tem_transporte && formData.tipo_transporte === 'aviao' && (
+                        {formData.tem_transporte && formData.tipo_transporte === 'aviao' ? (
                           <Badge className="bg-blue-100 text-blue-700 text-xs">Selecionado</Badge>
+                        ) : (
+                          <kbd className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">3</kbd>
                         )}
                       </div>
                     </CardContent>
@@ -894,6 +1183,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                       formData.tem_transporte && formData.tipo_transporte === 'carro' ? 'ring-2 ring-orange-500 bg-orange-50' : 'hover:shadow-md'
                     }`}
                     onClick={() => setFormData(prev => ({ ...prev, tem_transporte: true, tipo_transporte: 'carro' }))}
+                    title="Pressione 4 para selecionar"
                   >
                     <CardContent className="p-3 text-center">
                       <div className="flex flex-col items-center gap-2">
@@ -904,8 +1194,10 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           <h3 className="font-semibold text-sm">Carro/Aluguer</h3>
                           <p className="text-xs text-gray-600">A definir</p>
                         </div>
-                        {formData.tem_transporte && formData.tipo_transporte === 'carro' && (
+                        {formData.tem_transporte && formData.tipo_transporte === 'carro' ? (
                           <Badge className="bg-orange-100 text-orange-700 text-xs">Selecionado</Badge>
+                        ) : (
+                          <kbd className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded font-mono">4</kbd>
                         )}
                       </div>
                     </CardContent>
@@ -1152,12 +1444,18 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
               </div>
             </CardHeader>
             <CardContent className="p-6">
+              <div className="mb-4 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-xs text-purple-700 text-center">
+                  💡 Use <kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">Y</kbd>/<kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">S</kbd> para Sim ou <kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">N</kbd> para Não
+                </p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <Card 
                   className={`cursor-pointer transition-all duration-200 ${
                     !formData.tem_hotel ? 'ring-2 ring-red-500 bg-red-50' : 'hover:shadow-md'
                   }`}
                   onClick={() => setFormData(prev => ({ ...prev, tem_hotel: false }))}
+                  title="Pressione N para selecionar"
                 >
                   <CardContent className="p-6 text-center">
                     <div className="flex flex-col items-center gap-4">
@@ -1168,8 +1466,10 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                         <h3 className="font-semibold text-lg">Não preciso</h3>
                         <p className="text-sm text-gray-600">Viagem de um dia ou já tenho alojamento</p>
                       </div>
-                      {!formData.tem_hotel && (
+                      {!formData.tem_hotel ? (
                         <Badge className="bg-red-100 text-red-700">Selecionado</Badge>
+                      ) : (
+                        <kbd className="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded font-mono">N</kbd>
                       )}
                     </div>
                   </CardContent>
@@ -1180,6 +1480,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                     formData.tem_hotel ? 'ring-2 ring-purple-500 bg-purple-50' : 'hover:shadow-md'
                   }`}
                   onClick={() => setFormData(prev => ({ ...prev, tem_hotel: true }))}
+                  title="Pressione Y ou S para selecionar"
                 >
                   <CardContent className="p-6 text-center">
                     <div className="flex flex-col items-center gap-4">
@@ -1190,8 +1491,14 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                         <h3 className="font-semibold text-lg">Sim, preciso</h3>
                         <p className="text-sm text-gray-600">83,30€ + 4€ taxa por noite</p>
                       </div>
-                      {formData.tem_hotel && (
+                      {formData.tem_hotel ? (
                         <Badge className="bg-purple-100 text-purple-700">Selecionado</Badge>
+                      ) : (
+                        <div className="flex gap-2">
+                          <kbd className="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded font-mono">Y</kbd>
+                          <span className="text-gray-400">ou</span>
+                          <kbd className="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded font-mono">S</kbd>
+                        </div>
                       )}
                     </div>
                   </CardContent>
@@ -1545,6 +1852,9 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col overflow-hidden w-full">
       <Header title="Assistente de Viagens Corporativas" />
 
+      {/* Help Panel */}
+      {renderHelpPanel()}
+
       <main className="flex-1 container mx-auto px-4 py-4 max-w-6xl flex flex-col overflow-hidden min-h-0 w-full">
         {/* Hero Section - Compact */}
         <motion.div
@@ -1553,21 +1863,32 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="text-center mb-4"
         >
-          <motion.h1
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
-            className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2"
-          >
-            ✈️ Pedido de Viagem Simplificado
-          </motion.h1>
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <motion.h1
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
+              className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
+            >
+              ✈️ Pedido de Viagem Simplificado
+            </motion.h1>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowHelp(true)}
+              className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors group"
+              title="Atalhos de Teclado (? ou F1)"
+            >
+              <HelpCircle className="h-5 w-5 text-blue-600" />
+            </motion.button>
+          </div>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6, ease: "easeOut" }}
             className="text-sm text-gray-600 max-w-2xl mx-auto"
           >
-            Configure a sua viagem corporativa passo a passo.
+            Configure a sua viagem corporativa passo a passo. Pressione <kbd className="px-2 py-0.5 bg-white border rounded text-xs font-mono">?</kbd> para atalhos de teclado.
           </motion.p>
         </motion.div>
 
