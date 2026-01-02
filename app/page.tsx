@@ -157,7 +157,7 @@ export default function TravelCalculator() {
       tipo: 'Alfa Pendular',
       observacoes: ''
     },
-    tem_regresso: false,
+    tem_regresso: true,
     comboio_regresso: {
       local_partida: 'Lisboa Oriente',
       local_chegada: 'Porto Campanha',
@@ -438,7 +438,14 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if user is typing in an input/textarea
       const target = e.target as HTMLElement
-      const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+      const isTextArea = target.tagName === 'TEXTAREA'
+      const isInputField = target.tagName === 'INPUT' || isTextArea || target.isContentEditable
+      const isButtonLike = target.tagName === 'BUTTON' || target.getAttribute('role') === 'button'
+
+      // If a Radix popover/select/dialog is open, avoid intercepting Enter
+      const isOverlayOpen = Boolean(
+        document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][data-side]')
+      )
       
       // Help panel toggle (? or F1)
       if ((e.key === '?' && !isInputField) || e.key === 'F1') {
@@ -454,12 +461,25 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
         return
       }
       
-      // Navigation shortcuts (only when not in input field and help is closed)
-      if (!isInputField && !showHelp) {
+      // Navigation shortcuts (help closed)
+      if (!showHelp) {
         // Enter to proceed to next step (if current step is valid)
-        if (e.key === 'Enter' && currentStep !== 'preview' && isStepCompleted(currentStep)) {
+        // Allow Enter even when focusing inputs (except textarea), but do not override buttons/popovers.
+        if (
+          e.key === 'Enter' &&
+          currentStep !== 'preview' &&
+          isStepCompleted(currentStep) &&
+          !isTextArea &&
+          !isButtonLike &&
+          !isOverlayOpen
+        ) {
           e.preventDefault()
           nextStep()
+          return
+        }
+
+        // Remaining shortcuts only when not in input field
+        if (isInputField) {
           return
         }
         
@@ -497,24 +517,6 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
             generateExcel()
             return
           }
-        }
-
-        // Number shortcuts for quick selection in certain steps
-        if (currentStep === 'motivo' && e.key >= '1' && e.key <= '6') {
-          e.preventDefault()
-          const options = [
-            'Reunião com cliente',
-            'Formação técnica',
-            'Conferência',
-            'Workshop',
-            'Hackathon',
-            'Evento corporativo'
-          ]
-          const index = parseInt(e.key) - 1
-          if (options[index]) {
-            setFormData(prev => ({ ...prev, motivoViagem: options[index] }))
-          }
-          return
         }
 
         // Number shortcuts for transport selection
@@ -765,6 +767,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           disabled={currentStep === 'inicio'}
           className="flex items-center gap-2 relative group"
           title="Voltar (Esc ou ←)"
+          tabIndex={-1}
         >
           <ChevronLeft className="h-4 w-4" />
           Anterior
@@ -1029,11 +1032,6 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                       💡 Apenas o motivo (ex: &ldquo;Reunião com cliente&rdquo;, &ldquo;Formação técnica&rdquo;, &ldquo;Conferência&rdquo;)
                     </p>
                   </div>
-                  <div className="p-2 bg-amber-50 rounded-lg border border-amber-200">
-                    <p className="text-xs text-amber-700 text-center">
-                      ⌨️ Ou use as teclas <kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">1</kbd>-<kbd className="px-1.5 py-0.5 bg-white border rounded font-mono text-xs">6</kbd> para selecionar rapidamente
-                    </p>
-                  </div>
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -1041,12 +1039,12 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                     className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6"
                   >
                     {[
-                      { emoji: '📊', text: 'Reunião com cliente', key: '1' },
-                      { emoji: '🎓', text: 'Formação técnica', key: '2' },
-                      { emoji: '🎤', text: 'Conferência', key: '3' },
-                      { emoji: '🔧', text: 'Workshop', key: '4' },
-                      { emoji: '💻', text: 'Hackathon', key: '5' },
-                      { emoji: '🏢', text: 'Evento corporativo', key: '6' }
+                      { emoji: '📊', text: 'Reunião com cliente' },
+                      { emoji: '🎓', text: 'Formação técnica' },
+                      { emoji: '🎤', text: 'Conferência' },
+                      { emoji: '🔧', text: 'Workshop' },
+                      { emoji: '💻', text: 'Hackathon' },
+                      { emoji: '🏢', text: 'Evento corporativo' }
                     ].map((option, index) => (
                       <motion.div
                         key={option.text}
@@ -1060,13 +1058,10 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           variant="outline"
                           onClick={() => setFormData(prev => ({ ...prev, motivoViagem: option.text }))}
                           className="text-left justify-start h-auto p-3 transition-all duration-200 hover:bg-amber-50 relative group"
-                          title={`Pressione ${option.key} para selecionar`}
+                          title="Selecionar motivo"
                         >
                           <span className="flex items-center gap-2 w-full">
                             {option.emoji} {option.text}
-                            <kbd className="ml-auto px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded font-mono opacity-60 group-hover:opacity-100 transition-opacity">
-                              {option.key}
-                            </kbd>
                           </span>
                         </Button>
                       </motion.div>
@@ -1234,12 +1229,14 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                   <div className="flex items-center gap-3">
                     <span className="text-lg">🔄</span>
                     <div>
-                      <h3 className="font-medium text-gray-800">Viagem de Regresso</h3>
-                      <p className="text-xs text-gray-600">Incluir bilhete de volta</p>
+                      <h3 className="font-medium text-gray-800">Ida e volta</h3>
+                      <p className="text-xs text-gray-600">Padrão: inclui regresso</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-green-600 font-bold">+36€</span>
+                    <span className="text-green-700 font-bold">
+                      {formData.tem_regresso ? '72€' : '36€'}
+                    </span>
                     <div className="relative">
                       <input
                         type="checkbox"
@@ -1341,7 +1338,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                             ...prev,
                             comboio_ida: { ...prev.comboio_ida, hora: time }
                           }))}
-                          placeholder="Selecionar hora"
+                          placeholder="HH:mm"
                           className="text-sm h-9 mt-1 w-full"
                         />
                       </div>
@@ -1373,6 +1370,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                                 ...prev,
                                 comboio_regresso: { ...prev.comboio_regresso, data: date ? date.toISOString().split('T')[0] : '' }
                               }))}
+                              minDate={formData.comboio_ida.data ? new Date(formData.comboio_ida.data) : undefined}
                               placeholder="Selecionar data"
                               className="text-sm h-9 mt-1 w-full"
                             />
@@ -1385,7 +1383,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                                 ...prev,
                                 comboio_regresso: { ...prev.comboio_regresso, hora: time }
                               }))}
-                              placeholder="Selecionar hora"
+                              placeholder="HH:mm"
                               className="text-sm h-9 mt-1 w-full"
                             />
                           </div>
@@ -1541,6 +1539,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           ...prev,
                           alojamento: { ...prev.alojamento, data_chegada: date ? date.toISOString().split('T')[0] : '' }
                         }))}
+                        maxDate={formData.alojamento.data_partida ? new Date(formData.alojamento.data_partida) : undefined}
                         placeholder="Selecionar chegada"
                         className="bg-white/70"
                       />
@@ -1553,6 +1552,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           ...prev,
                           alojamento: { ...prev.alojamento, data_partida: date ? date.toISOString().split('T')[0] : '' }
                         }))}
+                        minDate={formData.alojamento.data_chegada ? new Date(formData.alojamento.data_chegada) : undefined}
                         placeholder="Selecionar partida"
                         className="bg-white/70"
                       />

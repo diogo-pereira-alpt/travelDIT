@@ -20,6 +20,8 @@ interface DatePickerProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  minDate?: Date
+  maxDate?: Date
 }
 
 export function DatePicker({
@@ -27,7 +29,9 @@ export function DatePicker({
   onSelect,
   placeholder = "Selecionar data",
   className,
-  disabled = false
+  disabled = false,
+  minDate,
+  maxDate,
 }: DatePickerProps) {
   const handleSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
@@ -48,9 +52,10 @@ export function DatePicker({
   }
 
   return (
-    <Popover>
+    <Popover modal>
       <PopoverTrigger asChild>
         <Button
+          type="button"
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
@@ -68,6 +73,18 @@ export function DatePicker({
           mode="single"
           selected={date}
           onSelect={handleSelect}
+          disabled={(day) => {
+            const dayAtNoon = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0, 0)
+            if (minDate) {
+              const minAtNoon = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate(), 12, 0, 0, 0)
+              if (dayAtNoon < minAtNoon) return true
+            }
+            if (maxDate) {
+              const maxAtNoon = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate(), 12, 0, 0, 0)
+              if (dayAtNoon > maxAtNoon) return true
+            }
+            return false
+          }}
           initialFocus
         />
       </PopoverContent>
