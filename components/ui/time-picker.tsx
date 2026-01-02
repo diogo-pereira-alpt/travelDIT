@@ -172,7 +172,7 @@ export function TimePicker({
       e.stopPropagation()
       const validated = validateAndFormat(inputValue)
       if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(validated)) {
-        commitTime(inputValue)
+        commitTime(validated)
       }
       return
     }
