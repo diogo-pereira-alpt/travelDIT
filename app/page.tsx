@@ -141,6 +141,9 @@ export default function TravelCalculator() {
   const [currentStep, setCurrentStep] = useState<QuizStep>('inicio')
   const [formData, setFormData] = useState<TravelFormData>({
     colaborador: {
+      // Note: Using NEXT_PUBLIC_ prefix for single-user personal data
+      // In multi-user scenarios, fetch this via API from server-side
+      // Security: Access controlled via NextAuth + email whitelist
       apelido: process.env.NEXT_PUBLIC_USER_APELIDO || 'Pereira',
       primeiro_nome: process.env.NEXT_PUBLIC_USER_PRIMEIRO_NOME || 'Diogo',
       num_colaborador: process.env.NEXT_PUBLIC_USER_NUM_COLABORADOR || '10059580',

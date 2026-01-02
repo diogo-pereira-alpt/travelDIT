@@ -131,6 +131,11 @@ Consulte `.env.example` para a lista completa de variáveis necessárias:
 - ✅ Sessões encriptadas com NextAuth
 - ✅ Sem dados hardcoded no código
 
+**Nota sobre Dados do Utilizador**: Esta aplicação é desenhada para uso pessoal/single-user. Os dados do utilizador (NIF, BI, etc.) são carregados via `NEXT_PUBLIC_` prefix para facilitar a inicialização do formulário no cliente. Para uma aplicação multi-utilizador, estes dados devem ser servidos via API server-side. A segurança é garantida através de:
+- Acesso restrito via Google OAuth
+- Whitelist de emails autorizados
+- Dados não hardcoded no repositório
+
 ## 🤝 Contribuir
 
 Contribuições são bem-vindas! Por favor:
