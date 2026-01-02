@@ -2,7 +2,7 @@
 
 import * as ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
-import { format, parse, isValid } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import * as XLSX from 'xlsx'
 
 // Helper function to format date strings to dd/MM/yyyy

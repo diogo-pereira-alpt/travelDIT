@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Clock } from "lucide-react"
+import { Clock, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -61,6 +61,9 @@ export function TimePicker({
     }
     return result
   }, [stepMinutes])
+
+  // Common times as presets
+  const presetTimes = ['09:00', '10:00', '12:00', '14:00', '16:00', '18:00']
 
   const formatTimeInput = (input: string): string => {
     // Remove tudo que não é dígito
@@ -154,6 +157,12 @@ export function TimePicker({
     }
   }
 
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setInputValue('')
+    onSelect?.('')
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return
 
@@ -172,8 +181,21 @@ export function TimePicker({
     if (e.key === 'Enter') {
       e.preventDefault()
       commitTime(inputValue)
+      setOpen(false)
       return
     }
+
+    if (e.key === 'Escape') {
+      setOpen(false)
+      return
+    }
+  }
+
+  const getAriaLabel = () => {
+    if (inputValue) {
+      return `Hora selecionada: ${inputValue}. Pressione Enter para alterar, setas para ajustar, ou Delete para limpar.`
+    }
+    return `${placeholder}. Pressione Enter para selecionar uma hora.`
   }
 
   return (
@@ -184,17 +206,41 @@ export function TimePicker({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "w-full justify-start text-left font-normal",
+            "w-full justify-start text-left font-normal transition-all hover:bg-accent hover:border-primary/50",
             !inputValue && "text-muted-foreground",
+            inputValue && "pr-8 relative",
             className
           )}
+          aria-label={getAriaLabel()}
+          aria-expanded={open}
+          aria-haspopup="dialog"
         >
-          <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-          {inputValue ? inputValue : <span>{placeholder}</span>}
+          <Clock className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="flex-1">
+            {inputValue ? (
+              <span className="font-medium">{inputValue}</span>
+            ) : (
+              placeholder
+            )}
+          </span>
+          {inputValue && !disabled && (
+            <span
+              className="absolute right-2 hover:bg-destructive/10 rounded-sm p-0.5 transition-colors"
+              onClick={handleClear}
+              role="button"
+              aria-label="Limpar hora"
+              tabIndex={-1}
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+            </span>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-3" align="start">
-        <div className="space-y-2">
+      <PopoverContent className="w-80 p-0" align="start">
+        <div className="p-3 border-b bg-muted/50">
+          <p className="text-sm font-medium text-center mb-2">
+            {inputValue || "Selecione uma hora"}
+          </p>
           <Input
             type="text"
             value={inputValue}
@@ -207,28 +253,60 @@ export function TimePicker({
             inputMode="numeric"
             autoComplete="off"
             autoFocus
+            className="text-center text-lg font-medium"
+            aria-label="Digite a hora no formato HH:mm"
           />
-          <ScrollArea className="h-56 rounded-md border">
-            <div className="p-1">
-              {times.map((time) => {
-                const selected = time === inputValue
-                return (
-                  <Button
-                    key={time}
-                    type="button"
-                    variant={selected ? "secondary" : "ghost"}
-                    className={cn("w-full justify-start", selected && "font-semibold")}
-                    onClick={() => commitTime(time)}
-                  >
-                    {time}
-                  </Button>
-                )
-              })}
-            </div>
-          </ScrollArea>
-          <p className="text-xs text-muted-foreground">
-            ↑/↓ ajusta {stepMinutes} min, Enter confirma
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Digite ou use ↑/↓ para ajustar
           </p>
+        </div>
+        
+        {/* Preset times */}
+        <div className="p-3 border-b bg-muted/30">
+          <p className="text-xs font-medium mb-2 text-muted-foreground">Horários comuns:</p>
+          <div className="grid grid-cols-3 gap-2">
+            {presetTimes.map((time) => (
+              <Button
+                key={time}
+                type="button"
+                variant={inputValue === time ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-8"
+                onClick={() => commitTime(time)}
+              >
+                {time}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* All times list */}
+        <ScrollArea className="h-48">
+          <div className="p-2">
+            <p className="text-xs font-medium mb-2 px-2 text-muted-foreground">Todos os horários:</p>
+            {times.map((time) => {
+              const selected = time === inputValue
+              return (
+                <Button
+                  key={time}
+                  type="button"
+                  variant={selected ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-start text-sm h-9",
+                    selected && "font-semibold bg-primary/10"
+                  )}
+                  onClick={() => commitTime(time)}
+                >
+                  <Clock className="mr-2 h-3.5 w-3.5" />
+                  {time}
+                </Button>
+              )
+            })}
+          </div>
+        </ScrollArea>
+        
+        <div className="p-3 border-t bg-muted/50 text-xs text-muted-foreground text-center">
+          Use ↑/↓ para incrementos de {stepMinutes} min • Enter confirma • Esc fecha
         </div>
       </PopoverContent>
     </Popover>
