@@ -16,7 +16,6 @@ import { format } from "date-fns";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-//TODO: Limitar o calendario ate 1 ano?
 function Calendar({
   className,
   classNames,
@@ -44,10 +43,8 @@ function Calendar({
     <DayPicker
       locale={ptBR}
       weekStartsOn={1}
-      // disabled={{before: new Date()}}
       showOutsideDays={showOutsideDays}
-      captionLayout="dropdown-buttons" //Also: dropdown | buttons
-
+      captionLayout="dropdown-buttons"
       className={cn("m-0 ", className)}
       formatters={{ formatCaption, formatWeekdayName } as Partial<Formatters>}
       classNames={{
@@ -57,10 +54,11 @@ function Calendar({
         caption:
           "flex justify-center relative items-center bg-color-black-meo p-3 bg-clip-border rounded-t-md",
         caption_label: "text-white text-[13px] font-semibold",
+        caption_dropdowns: "flex gap-2",
         nav: "space-x-1 flex items-center text-white",
         nav_button: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 "
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-white"
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
@@ -77,7 +75,7 @@ function Calendar({
         ),
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-7 w-7 p-0 font-light text-[12px] font-montserrat aria-selected:opacity-100 rounded-full text-black focus:text-white hover:text-white hover:bg-color-blue-meo focus:bg-color-black-meo"
+          "h-7 w-7 p-0 font-light text-[12px] font-montserrat aria-selected:opacity-100 rounded-full text-black focus:text-white hover:text-white hover:bg-color-blue-meo focus:bg-color-black-meo focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         ),
         day_range_start: "day-range-start",
         day_range_end: "day-range-end",
@@ -86,18 +84,20 @@ function Calendar({
         day_today:
           "bg-transparent text-black  outline-1 outline outline-color-grey-ccc-meo",
         day_outside:
-          " ",
-        day_disabled: "text-muted-foreground opacity-50",
+          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+        day_disabled: "text-muted-foreground opacity-50 cursor-not-allowed",
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
+        dropdown: "px-2 py-1 rounded-md bg-white border text-sm",
+        dropdown_month: "px-2 py-1 rounded-md bg-white border text-sm",
+        dropdown_year: "px-2 py-1 rounded-md bg-white border text-sm",
 
         ...classNames,
       }}
       components={{
-        IconLeft: () => <ChevronLeftIcon className="h-4 w-4" />,
-        IconRight: () => <ChevronRightIcon className="h-4 w-4" />,
-        
+        IconLeft: () => <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />,
+        IconRight: () => <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />,
       }}
       {...props}
     />
