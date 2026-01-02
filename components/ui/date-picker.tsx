@@ -121,7 +121,7 @@ export function DatePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0 max-w-[calc(100vw-2rem)]" align="start">
         <div className="p-3 border-b bg-muted/50">
           <p className="text-sm font-medium text-center">
             {date ? formatDate(date) : "Selecione uma data"}

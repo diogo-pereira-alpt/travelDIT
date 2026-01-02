@@ -62,8 +62,8 @@ export function TimePicker({
     return result
   }, [stepMinutes])
 
-  // Common times as presets
-  const presetTimes = ['09:00', '10:00', '12:00', '14:00', '16:00', '18:00']
+  // Common times as presets - customized for user's typical travel times
+  const presetTimes = ['07:40', '09:00', '12:00', '14:00', '17:09', '18:09']
 
   const formatTimeInput = (input: string): string => {
     // Remove tudo que não é dígito
@@ -166,6 +166,17 @@ export function TimePicker({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return
 
+    // Prevent form submission when Enter is pressed
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      const validated = validateAndFormat(inputValue)
+      if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(validated)) {
+        commitTime(inputValue)
+      }
+      return
+    }
+
     if (e.key === 'ArrowUp') {
       e.preventDefault()
       adjustTime(stepMinutes)
@@ -175,15 +186,6 @@ export function TimePicker({
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       adjustTime(-stepMinutes)
-      return
-    }
-
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const validated = validateAndFormat(inputValue)
-      if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(validated)) {
-        commitTime(inputValue)
-      }
       return
     }
 
@@ -244,7 +246,7 @@ export function TimePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
+      <PopoverContent className="w-[min(20rem,calc(100vw-2rem))] p-0" align="start">
         <div className="p-3 border-b bg-muted/50">
           <p className="text-sm font-medium text-center mb-2">
             {inputValue || "Selecione uma hora"}
@@ -272,7 +274,7 @@ export function TimePicker({
         {/* Preset times */}
         <div className="p-3 border-b bg-muted/30">
           <p className="text-xs font-medium mb-2 text-muted-foreground">Horários comuns:</p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {presetTimes.map((time) => (
               <Button
                 key={time}
