@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__shadcn__search_items_in_registries",
+      "mcp__shadcn__view_items_in_registries",
+      "mcp__shadcn__get_item_examples_from_registries",
+      "mcp__shadcn__get_add_command_for_items",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm install:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_snapshot",
+      "Bash(npm run build:*)",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_evaluate",
+      "Bash(npx tauri:*)",
+      "Bash(npm run tauri:dev:*)",
+      "Bash(curl:*)",
+      "Bash(sh:*)",
+      "Bash(winget install:*)",
+      "Bash(refreshenv)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ]
+}
