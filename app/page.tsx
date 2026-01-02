@@ -174,6 +174,7 @@ export default function TravelCalculator() {
   const [emailContent, setEmailContent] = useState('')
   const [error, setError] = useState('')
   const [showHelp, setShowHelp] = useState(false)
+  const [isGeneratingExcel, setIsGeneratingExcel] = useState(false)
 
   // Verificar se já está autenticado no localStorage
   useEffect(() => {
@@ -292,6 +293,145 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
   useEffect(() => {
     localStorage.setItem('travelCalculator_colaborador', JSON.stringify(formData.colaborador))
   }, [formData.colaborador])
+
+  // Step validation
+  const isStepCompleted = useCallback((step: QuizStep): boolean => {
+    switch (step) {
+      case 'inicio':
+        // Verificar se todos os campos obrigatórios do colaborador estão preenchidos
+        return formData.colaborador.primeiro_nome.trim() !== '' &&
+               formData.colaborador.apelido.trim() !== '' &&
+               formData.colaborador.num_colaborador.trim() !== '' &&
+               formData.colaborador.direcao.trim() !== '' &&
+               formData.colaborador.centro_custo.trim() !== '' &&
+               formData.colaborador.bi_cc.trim() !== ''
+      case 'motivo':
+        return formData.motivoViagem.trim() !== ''
+      case 'transporte':
+        return true // Always completed as it's a choice
+      case 'comboio_detalhes':
+        return formData.comboio_ida.data !== ''
+      case 'hotel':
+        return true // Always completed as it's a choice
+      case 'datas':
+        if (formData.tem_hotel) {
+          return formData.alojamento.data_chegada !== '' && formData.alojamento.data_partida !== ''
+        }
+        return true
+      case 'preview':
+        return true
+      default:
+        return false
+    }
+  }, [formData])
+
+  // Navigation functions
+  const nextStep = useCallback(() => {
+    const steps: QuizStep[] = ['inicio', 'motivo', 'transporte', 'comboio_detalhes', 'hotel', 'datas', 'preview']
+    const currentIndex = steps.indexOf(currentStep)
+
+    // Se estamos no passo transporte e não escolhemos comboio, pular o step de detalhes do comboio
+    if (currentStep === 'transporte' && formData.tipo_transporte !== 'comboio') {
+      setCurrentStep('hotel')
+      return
+    }
+
+    if (currentIndex < steps.length - 1) {
+      setCurrentStep(steps[currentIndex + 1])
+    }
+  }, [currentStep, formData.tipo_transporte])
+
+  const prevStep = useCallback(() => {
+    const steps: QuizStep[] = ['inicio', 'motivo', 'transporte', 'comboio_detalhes', 'hotel', 'datas', 'preview']
+    const currentIndex = steps.indexOf(currentStep)
+
+    // Se estamos no hotel e o transporte não é comboio, voltar direto para transporte
+    if (currentStep === 'hotel' && formData.tipo_transporte !== 'comboio') {
+      setCurrentStep('transporte')
+      return
+    }
+
+    if (currentIndex > 0) {
+      setCurrentStep(steps[currentIndex - 1])
+    }
+  }, [currentStep, formData.tipo_transporte])
+
+  // Send email
+  const sendEmail = useCallback(() => {
+    const subject = encodeURIComponent('Pedido de Viagem')
+    const body = encodeURIComponent(emailContent)
+    const mailtoUrl = `mailto:?subject=${subject}&body=${body}`
+    window.open(mailtoUrl, '_self')
+  }, [emailContent])
+  
+  // Generate Excel
+  const generateExcel = useCallback(async () => {
+    if (isGeneratingExcel) return // Prevent multiple clicks
+    
+    try {
+      setIsGeneratingExcel(true)
+      setError('')
+      
+      // Show loading toast
+      addToast({
+        type: 'info',
+        title: '📄 A Gerar Excel...',
+        message: 'Por favor aguarde enquanto o ficheiro está a ser criado.',
+        duration: 0 // Don't auto-remove
+      })
+      
+      const templateData = {
+        colaborador: formData.colaborador,
+        tem_aviao: formData.tipo_transporte === 'aviao',
+        aviao_viagens: [],
+        tem_alojamento: formData.tem_hotel,
+        alojamentos: formData.tem_hotel ? [{
+          cidade: formData.alojamento.cidade,
+          hotel: formData.alojamento.hotel,
+          data_chegada: formData.alojamento.data_chegada,
+          data_partida: formData.alojamento.data_partida,
+          tipo_quarto: formData.alojamento.tipo_quarto,
+          observacoes: formData.alojamento.observacoes
+        }] : [],
+        tem_automovel: formData.tipo_transporte === 'carro',
+        automoveis: [],
+        tem_outros: false,
+        outros_servicos: '',
+        tem_comboio: formData.tipo_transporte === 'comboio',
+        comboio_ida: {
+          local_partida: formData.comboio_ida.local_partida,
+          local_destino: formData.comboio_ida.local_chegada,
+          data: formData.comboio_ida.data,
+          hora_partida: formData.comboio_ida.hora,
+          classe: formData.comboio_ida.tipo
+        },
+        tem_regresso: formData.tem_regresso,
+        comboio_regresso: {
+          local_partida: formData.comboio_regresso.local_partida,
+          local_destino: formData.comboio_regresso.local_chegada,
+          data: formData.comboio_regresso.data,
+          hora_partida: formData.comboio_regresso.hora,
+          classe: formData.comboio_regresso.tipo
+        },
+        observacoes_ida: '',
+        observacoes_regresso: ''
+      }
+      
+      await generateExcelFromTemplate(templateData)
+      
+    } catch (err) {
+      const errorMessage = 'Erro ao gerar Excel: ' + (err as Error).message
+      setError(errorMessage)
+      addToast({
+        type: 'error',
+        title: '❌ Erro no Download',
+        message: errorMessage,
+        duration: 8000
+      })
+    } finally {
+      setIsGeneratingExcel(false)
+    }
+  }, [isGeneratingExcel, formData, addToast])
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -413,117 +553,6 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentStep, showHelp, formData, isStepCompleted, nextStep, prevStep, sendEmail, generateExcel])
 
-  // Send email
-  const sendEmail = useCallback(() => {
-    const subject = encodeURIComponent('Pedido de Viagem')
-    const body = encodeURIComponent(emailContent)
-    const mailtoUrl = `mailto:?subject=${subject}&body=${body}`
-    window.open(mailtoUrl, '_self')
-  }, [emailContent])
-
-  // Loading state for Excel generation
-  const [isGeneratingExcel, setIsGeneratingExcel] = useState(false)
-  
-  // Generate Excel
-  const generateExcel = useCallback(async () => {
-    if (isGeneratingExcel) return // Prevent multiple clicks
-    
-    try {
-      setIsGeneratingExcel(true)
-      setError('')
-      
-      // Show loading toast
-      addToast({
-        type: 'info',
-        title: '📄 A Gerar Excel...',
-        message: 'Por favor aguarde enquanto o ficheiro está a ser criado.',
-        duration: 0 // Don't auto-remove
-      })
-      
-      const templateData = {
-        colaborador: formData.colaborador,
-        tem_aviao: formData.tipo_transporte === 'aviao',
-        aviao_viagens: [],
-        tem_alojamento: formData.tem_hotel,
-        alojamentos: formData.tem_hotel ? [{
-          cidade: formData.alojamento.cidade,
-          hotel: formData.alojamento.hotel,
-          data_chegada: formData.alojamento.data_chegada,
-          data_partida: formData.alojamento.data_partida,
-          tipo_quarto: formData.alojamento.tipo_quarto,
-          observacoes: formData.alojamento.observacoes
-        }] : [],
-        tem_automovel: formData.tipo_transporte === 'carro',
-        automoveis: [],
-        tem_outros: false,
-        outros_servicos: '',
-        tem_comboio: formData.tipo_transporte === 'comboio',
-        comboio_ida: {
-          local_partida: formData.comboio_ida.local_partida,
-          local_destino: formData.comboio_ida.local_chegada,
-          data: formData.comboio_ida.data,
-          hora_partida: formData.comboio_ida.hora,
-          classe: formData.comboio_ida.tipo
-        },
-        tem_regresso: formData.tem_regresso,
-        comboio_regresso: {
-          local_partida: formData.comboio_regresso.local_partida,
-          local_destino: formData.comboio_regresso.local_chegada,
-          data: formData.comboio_regresso.data,
-          hora_partida: formData.comboio_regresso.hora,
-          classe: formData.comboio_regresso.tipo
-        },
-        observacoes_ida: '',
-        observacoes_regresso: ''
-      }
-      
-      await generateExcelFromTemplate(templateData)
-      
-    } catch (err) {
-      const errorMessage = 'Erro ao gerar Excel: ' + (err as Error).message
-      setError(errorMessage)
-      addToast({
-        type: 'error',
-        title: '❌ Erro no Download',
-        message: errorMessage,
-        duration: 8000
-      })
-    } finally {
-      setIsGeneratingExcel(false)
-    }
-  }, [isGeneratingExcel, formData, addToast])
-
-  // Navigation functions
-  const nextStep = useCallback(() => {
-    const steps: QuizStep[] = ['inicio', 'motivo', 'transporte', 'comboio_detalhes', 'hotel', 'datas', 'preview']
-    const currentIndex = steps.indexOf(currentStep)
-
-    // Se estamos no passo transporte e não escolhemos comboio, pular o step de detalhes do comboio
-    if (currentStep === 'transporte' && formData.tipo_transporte !== 'comboio') {
-      setCurrentStep('hotel')
-      return
-    }
-
-    if (currentIndex < steps.length - 1) {
-      setCurrentStep(steps[currentIndex + 1])
-    }
-  }, [currentStep, formData.tipo_transporte])
-
-  const prevStep = useCallback(() => {
-    const steps: QuizStep[] = ['inicio', 'motivo', 'transporte', 'comboio_detalhes', 'hotel', 'datas', 'preview']
-    const currentIndex = steps.indexOf(currentStep)
-
-    // Se estamos no hotel e o transporte não é comboio, voltar direto para transporte
-    if (currentStep === 'hotel' && formData.tipo_transporte !== 'comboio') {
-      setCurrentStep('transporte')
-      return
-    }
-
-    if (currentIndex > 0) {
-      setCurrentStep(steps[currentIndex - 1])
-    }
-  }, [currentStep, formData.tipo_transporte])
-
   const goToStep = (step: QuizStep) => {
     setCurrentStep(step)
   }
@@ -543,36 +572,6 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     // Se não escolheu comboio, são 6 steps (sem comboio_detalhes)
     return formData.tipo_transporte === 'comboio' ? 7 : 6
   }
-
-  const isStepCompleted = useCallback((step: QuizStep): boolean => {
-    switch (step) {
-      case 'inicio':
-        // Verificar se todos os campos obrigatórios do colaborador estão preenchidos
-        return formData.colaborador.primeiro_nome.trim() !== '' &&
-               formData.colaborador.apelido.trim() !== '' &&
-               formData.colaborador.num_colaborador.trim() !== '' &&
-               formData.colaborador.direcao.trim() !== '' &&
-               formData.colaborador.centro_custo.trim() !== '' &&
-               formData.colaborador.bi_cc.trim() !== ''
-      case 'motivo':
-        return formData.motivoViagem.trim() !== ''
-      case 'transporte':
-        return true // Always completed as it's a choice
-      case 'comboio_detalhes':
-        return formData.comboio_ida.data !== ''
-      case 'hotel':
-        return true // Always completed as it's a choice
-      case 'datas':
-        if (formData.tem_hotel) {
-          return formData.alojamento.data_chegada !== '' && formData.alojamento.data_partida !== ''
-        }
-        return true
-      case 'preview':
-        return true
-      default:
-        return false
-    }
-  }, [formData])
 
   // Help Panel Component
   const renderHelpPanel = () => (
