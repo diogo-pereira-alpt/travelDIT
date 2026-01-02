@@ -1,6 +1,8 @@
 ﻿'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,7 +40,6 @@ import {
 } from 'lucide-react'
 import meoLogo from "@/images/meo.png"
 import { generateExcelFromTemplate, setToastHandler } from "@/components/ExcelTemplate"
-import Auth from "@/components/Auth"
 import { ToastContainer, useToasts } from "@/components/ui/toast"
 
 // Header Component
@@ -121,24 +122,33 @@ interface TravelFormData {
 type QuizStep = 'inicio' | 'motivo' | 'transporte' | 'comboio_detalhes' | 'hotel' | 'datas' | 'preview'
 
 export default function TravelCalculator() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { status } = useSession()
+  const router = useRouter()
   const { toasts, addToast, removeToast } = useToasts()
+  
+  // Redirect to sign in if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin')
+    }
+  }, [status, router])
   
   // Setup toast handler for Excel generation
   useEffect(() => {
     setToastHandler(addToast)
   }, [addToast])
+  
   const [currentStep, setCurrentStep] = useState<QuizStep>('inicio')
   const [formData, setFormData] = useState<TravelFormData>({
     colaborador: {
-      apelido: 'Pereira',
-      primeiro_nome: 'Diogo',
-      num_colaborador: '10059580',
-      direcao: 'AIC',
-      centro_custo: '001-3751',
-      bi_cc: '15469466',
-      nif: '233530509',
-      contacto: '936439706'
+      apelido: process.env.NEXT_PUBLIC_USER_APELIDO || 'Pereira',
+      primeiro_nome: process.env.NEXT_PUBLIC_USER_PRIMEIRO_NOME || 'Diogo',
+      num_colaborador: process.env.NEXT_PUBLIC_USER_NUM_COLABORADOR || '10059580',
+      direcao: process.env.NEXT_PUBLIC_USER_DIRECAO || 'AIC',
+      centro_custo: process.env.NEXT_PUBLIC_USER_CENTRO_CUSTO || '001-3751',
+      bi_cc: process.env.NEXT_PUBLIC_USER_BI_CC || '15469466',
+      nif: process.env.NEXT_PUBLIC_USER_NIF || '233530509',
+      contacto: process.env.NEXT_PUBLIC_USER_CONTACTO || '936439706'
     },
     motivoViagem: '',
     alojamento: {
@@ -175,20 +185,6 @@ export default function TravelCalculator() {
   const [error, setError] = useState('')
   const [showHelp, setShowHelp] = useState(false)
   const [isGeneratingExcel, setIsGeneratingExcel] = useState(false)
-
-  // Verificar se já está autenticado no localStorage
-  useEffect(() => {
-    const authStatus = localStorage.getItem('travel_app_authenticated')
-    if (authStatus === 'true') {
-      setIsAuthenticated(true)
-    }
-  }, [])
-
-  // Função para lidar com autenticação bem-sucedida
-  const handleAuthenticated = () => {
-    localStorage.setItem('travel_app_authenticated', 'true')
-    setIsAuthenticated(true)
-  }
 
   // Calculate nights between dates
   const calculateNights = (checkin: string, checkout: string): number => {
@@ -1903,9 +1899,27 @@ Total: ${totalCusto.toFixed(2)}€`
     }
   }
 
-  // Se não estiver autenticado, mostrar tela de login
-  if (!isAuthenticated) {
-    return <Auth onAuthenticated={handleAuthenticated} />
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="text-6xl mb-4"
+          >
+            ⏳
+          </motion.div>
+          <p className="text-gray-600">A carregar...</p>
+        </motion.div>
+      </div>
+    )
   }
 
   return (
