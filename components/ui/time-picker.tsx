@@ -157,7 +157,7 @@ export function TimePicker({
     }
   }
 
-  const handleClear = (e: React.MouseEvent) => {
+  const handleClear = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation()
     setInputValue('')
     onSelect?.('')
@@ -180,8 +180,10 @@ export function TimePicker({
 
     if (e.key === 'Enter') {
       e.preventDefault()
-      commitTime(inputValue)
-      setOpen(false)
+      const validated = validateAndFormat(inputValue)
+      if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(validated)) {
+        commitTime(inputValue)
+      }
       return
     }
 
@@ -227,9 +229,15 @@ export function TimePicker({
             <span
               className="absolute right-2 hover:bg-destructive/10 rounded-sm p-0.5 transition-colors"
               onClick={handleClear}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  handleClear(e)
+                }
+              }}
               role="button"
               aria-label="Limpar hora"
-              tabIndex={-1}
+              tabIndex={0}
             >
               <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
             </span>

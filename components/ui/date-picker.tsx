@@ -54,7 +54,7 @@ export function DatePicker({
     }
   }
 
-  const handleClear = (e: React.MouseEvent) => {
+  const handleClear = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation()
     onSelect?.(undefined)
   }
@@ -62,6 +62,11 @@ export function DatePicker({
   const formatDate = (date: Date) => {
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: pt })
   }
+
+  const yearRange = React.useMemo(() => ({
+    from: new Date().getFullYear() - 1,
+    to: new Date().getFullYear() + 2
+  }), [])
 
   const getAriaLabel = () => {
     if (date) {
@@ -101,9 +106,15 @@ export function DatePicker({
             <span
               className="absolute right-2 hover:bg-destructive/10 rounded-sm p-0.5 transition-colors"
               onClick={handleClear}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  handleClear(e)
+                }
+              }}
               role="button"
               aria-label="Limpar data"
-              tabIndex={-1}
+              tabIndex={0}
             >
               <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
             </span>
@@ -134,8 +145,8 @@ export function DatePicker({
           }}
           initialFocus
           captionLayout="dropdown"
-          fromYear={new Date().getFullYear() - 1}
-          toYear={new Date().getFullYear() + 2}
+          fromYear={yearRange.from}
+          toYear={yearRange.to}
         />
         <div className="p-3 border-t bg-muted/50 flex gap-2">
           <Button
