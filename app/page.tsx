@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { DatePicker } from "@/components/ui/date-picker"
-import { TimePicker } from "@/components/ui/time-picker"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
@@ -1346,18 +1345,6 @@ Total: ${totalCusto.toFixed(2)}€`
                           className="text-sm h-9 mt-1 w-full"
                         />
                       </div>
-                      <div>
-                        <Label className="text-xs text-gray-600">Hora de Partida</Label>
-                        <TimePicker
-                          value={formData.comboio_ida.hora}
-                          onSelect={(time) => setFormData(prev => ({
-                            ...prev,
-                            comboio_ida: { ...prev.comboio_ida, hora: time }
-                          }))}
-                          placeholder="HH:mm"
-                          className="text-sm h-9 mt-1 w-full"
-                        />
-                      </div>
                       {/* Alfa Pendular schedule suggestions for Porto-Lisboa */}
                       {(formData.comboio_ida.local_partida.toLowerCase().includes('porto') && 
                         formData.comboio_ida.local_chegada.toLowerCase().includes('lisboa')) && (
@@ -1377,7 +1364,7 @@ Total: ${totalCusto.toFixed(2)}€`
                               </button>
                             ))}
                           </div>
-                          <p className="text-xs text-blue-600 mt-1">Preço: 75€ (corporativo primeira classe)</p>
+                          <p className="text-xs text-blue-600 mt-1">Preço: 37,50€ por viagem (75€ ida e volta corporativo)</p>
                         </div>
                       )}
                     </div>
@@ -1413,18 +1400,6 @@ Total: ${totalCusto.toFixed(2)}€`
                               className="text-sm h-9 mt-1 w-full"
                             />
                           </div>
-                          <div>
-                            <Label className="text-xs text-gray-600">Hora de Partida</Label>
-                            <TimePicker
-                              value={formData.comboio_regresso.hora}
-                              onSelect={(time) => setFormData(prev => ({
-                                ...prev,
-                                comboio_regresso: { ...prev.comboio_regresso, hora: time }
-                              }))}
-                              placeholder="HH:mm"
-                              className="text-sm h-9 mt-1 w-full"
-                            />
-                          </div>
                           {/* Alfa Pendular schedule suggestions for Lisboa-Porto */}
                           {(formData.comboio_regresso.local_partida.toLowerCase().includes('lisboa') && 
                             formData.comboio_regresso.local_chegada.toLowerCase().includes('porto')) && (
@@ -1444,7 +1419,7 @@ Total: ${totalCusto.toFixed(2)}€`
                                   </button>
                                 ))}
                               </div>
-                              <p className="text-xs text-blue-600 mt-1">Preço: 75€ (corporativo primeira classe)</p>
+                              <p className="text-xs text-blue-600 mt-1">Preço: 37,50€ por viagem (75€ ida e volta corporativo)</p>
                             </div>
                           )}
                         </div>
