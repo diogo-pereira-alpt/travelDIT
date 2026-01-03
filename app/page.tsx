@@ -1364,7 +1364,7 @@ Total: ${totalCusto.toFixed(2)}€`
                         <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                           <p className="text-xs font-semibold text-blue-800 mb-1">Horários Alfa Pendular Porto → Lisboa (CP.pt):</p>
                           <div className="flex flex-wrap gap-1">
-                            {['06:10', '07:06', '08:11', '10:06', '12:06', '14:06', '16:06', '18:11', '20:06'].map(time => (
+                            {['05:40', '06:40', '07:40', '09:40', '11:40', '13:40', '14:40', '16:40', '17:40', '18:40', '19:45'].map(time => (
                               <button
                                 key={time}
                                 onClick={() => setFormData(prev => ({
@@ -1431,7 +1431,7 @@ Total: ${totalCusto.toFixed(2)}€`
                             <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                               <p className="text-xs font-semibold text-blue-800 mb-1">Horários Alfa Pendular Lisboa → Porto (CP.pt):</p>
                               <div className="flex flex-wrap gap-1">
-                                {['06:25', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '21:55'].map(time => (
+                                {['07:09', '08:09', '09:09', '10:09', '12:09', '14:09', '16:09', '17:09', '18:09', '19:09', '20:09'].map(time => (
                                   <button
                                     key={time}
                                     onClick={() => setFormData(prev => ({
