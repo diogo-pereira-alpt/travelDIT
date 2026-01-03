@@ -1348,8 +1348,8 @@ Total: ${totalCusto.toFixed(2)}€`
                       {/* Alfa Pendular schedule suggestions for Porto-Lisboa */}
                       {(formData.comboio_ida.local_partida.toLowerCase().includes('porto') && 
                         formData.comboio_ida.local_chegada.toLowerCase().includes('lisboa')) && (
-                        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-xs font-semibold text-blue-800 mb-1">Horários Alfa Pendular Porto → Lisboa (CP.pt):</p>
+                        <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-xs font-semibold text-green-800 mb-1">Horários Alfa Pendular Porto → Lisboa (CP.pt):</p>
                           <div className="flex flex-wrap gap-1">
                             {['05:40', '06:40', '07:40', '09:40', '11:40', '13:40', '14:40', '16:40', '17:40', '18:40', '19:45'].map(time => (
                               <button
@@ -1358,13 +1358,29 @@ Total: ${totalCusto.toFixed(2)}€`
                                   ...prev,
                                   comboio_ida: { ...prev.comboio_ida, hora: time }
                                 }))}
-                                className="px-2 py-1 text-xs bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors"
+                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                  formData.comboio_ida.hora === time
+                                    ? 'bg-green-500 text-white border-green-600'
+                                    : 'bg-white border border-green-300 hover:bg-green-100'
+                                }`}
                               >
                                 {time}
                               </button>
                             ))}
                           </div>
-                          <p className="text-xs text-blue-600 mt-1">Preço: 37,50€ por viagem (75€ ida e volta corporativo)</p>
+                          <div className="mt-2">
+                            <Label className="text-xs text-gray-600">Ou introduza outra hora:</Label>
+                            <Input
+                              type="time"
+                              value={formData.comboio_ida.hora}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                comboio_ida: { ...prev.comboio_ida, hora: e.target.value }
+                              }))}
+                              className="text-sm h-9 mt-1 w-full"
+                            />
+                          </div>
+                          <p className="text-xs text-green-600 mt-2">Preço: 37,50€ por viagem (75€ ida e volta corporativo)</p>
                         </div>
                       )}
                     </div>
@@ -1403,8 +1419,8 @@ Total: ${totalCusto.toFixed(2)}€`
                           {/* Alfa Pendular schedule suggestions for Lisboa-Porto */}
                           {(formData.comboio_regresso.local_partida.toLowerCase().includes('lisboa') && 
                             formData.comboio_regresso.local_chegada.toLowerCase().includes('porto')) && (
-                            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                              <p className="text-xs font-semibold text-blue-800 mb-1">Horários Alfa Pendular Lisboa → Porto (CP.pt):</p>
+                            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                              <p className="text-xs font-semibold text-green-800 mb-1">Horários Alfa Pendular Lisboa → Porto (CP.pt):</p>
                               <div className="flex flex-wrap gap-1">
                                 {['07:09', '08:09', '09:09', '10:09', '12:09', '14:09', '16:09', '17:09', '18:09', '19:09', '20:09'].map(time => (
                                   <button
@@ -1413,13 +1429,29 @@ Total: ${totalCusto.toFixed(2)}€`
                                       ...prev,
                                       comboio_regresso: { ...prev.comboio_regresso, hora: time }
                                     }))}
-                                    className="px-2 py-1 text-xs bg-white border border-blue-300 rounded hover:bg-blue-100 transition-colors"
+                                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                                      formData.comboio_regresso.hora === time
+                                        ? 'bg-green-500 text-white border-green-600'
+                                        : 'bg-white border border-green-300 hover:bg-green-100'
+                                    }`}
                                   >
                                     {time}
                                   </button>
                                 ))}
                               </div>
-                              <p className="text-xs text-blue-600 mt-1">Preço: 37,50€ por viagem (75€ ida e volta corporativo)</p>
+                              <div className="mt-2">
+                                <Label className="text-xs text-gray-600">Ou introduza outra hora:</Label>
+                                <Input
+                                  type="time"
+                                  value={formData.comboio_regresso.hora}
+                                  onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    comboio_regresso: { ...prev.comboio_regresso, hora: e.target.value }
+                                  }))}
+                                  className="text-sm h-9 mt-1 w-full"
+                                />
+                              </div>
+                              <p className="text-xs text-green-600 mt-2">Preço: 37,50€ por viagem (75€ ida e volta corporativo)</p>
                             </div>
                           )}
                         </div>
