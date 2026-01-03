@@ -1,13 +1,14 @@
 ﻿'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { DatePicker } from "@/components/ui/date-picker"
-import { TimePicker } from "@/components/ui/time-picker"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
@@ -38,7 +39,6 @@ import {
 } from 'lucide-react'
 import meoLogo from "@/images/meo.png"
 import { generateExcelFromTemplate, setToastHandler } from "@/components/ExcelTemplate"
-import Auth from "@/components/Auth"
 import { ToastContainer, useToasts } from "@/components/ui/toast"
 
 // Header Component
@@ -121,24 +121,36 @@ interface TravelFormData {
 type QuizStep = 'inicio' | 'motivo' | 'transporte' | 'comboio_detalhes' | 'hotel' | 'datas' | 'preview'
 
 export default function TravelCalculator() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { status } = useSession()
+  const router = useRouter()
   const { toasts, addToast, removeToast } = useToasts()
+  
+  // Redirect to sign in if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin')
+    }
+  }, [status, router])
   
   // Setup toast handler for Excel generation
   useEffect(() => {
     setToastHandler(addToast)
   }, [addToast])
+  
   const [currentStep, setCurrentStep] = useState<QuizStep>('inicio')
   const [formData, setFormData] = useState<TravelFormData>({
     colaborador: {
-      apelido: 'Pereira',
-      primeiro_nome: 'Diogo',
-      num_colaborador: '10059580',
-      direcao: 'AIC',
-      centro_custo: '001-3751',
-      bi_cc: '15469466',
-      nif: '233530509',
-      contacto: '936439706'
+      // Note: Using NEXT_PUBLIC_ prefix for single-user personal data
+      // In multi-user scenarios, fetch this via API from server-side
+      // Security: Access controlled via NextAuth + email whitelist
+      apelido: process.env.NEXT_PUBLIC_USER_APELIDO || 'Pereira',
+      primeiro_nome: process.env.NEXT_PUBLIC_USER_PRIMEIRO_NOME || 'Diogo',
+      num_colaborador: process.env.NEXT_PUBLIC_USER_NUM_COLABORADOR || '10059580',
+      direcao: process.env.NEXT_PUBLIC_USER_DIRECAO || 'AIC',
+      centro_custo: process.env.NEXT_PUBLIC_USER_CENTRO_CUSTO || '001-3751',
+      bi_cc: process.env.NEXT_PUBLIC_USER_BI_CC || '15469466',
+      nif: process.env.NEXT_PUBLIC_USER_NIF || '233530509',
+      contacto: process.env.NEXT_PUBLIC_USER_CONTACTO || '936439706'
     },
     motivoViagem: '',
     alojamento: {
@@ -175,20 +187,6 @@ export default function TravelCalculator() {
   const [error, setError] = useState('')
   const [showHelp, setShowHelp] = useState(false)
   const [isGeneratingExcel, setIsGeneratingExcel] = useState(false)
-
-  // Verificar se já está autenticado no localStorage
-  useEffect(() => {
-    const authStatus = localStorage.getItem('travel_app_authenticated')
-    if (authStatus === 'true') {
-      setIsAuthenticated(true)
-    }
-  }, [])
-
-  // Função para lidar com autenticação bem-sucedida
-  const handleAuthenticated = () => {
-    localStorage.setItem('travel_app_authenticated', 'true')
-    setIsAuthenticated(true)
-  }
 
   // Calculate nights between dates
   const calculateNights = (checkin: string, checkout: string): number => {
@@ -266,12 +264,7 @@ ${noites > 0 ? `Estadia: 83,30 Eur / noite / pessoa ${estadiaCusto.toFixed(2)}�
 City Tax: 4,00 Eur / noite / pessoa ${cityTaxCusto.toFixed(2)}€` : ''}${transporteCusto > 0 ? `
 Comboio ${transporteCusto.toFixed(0)} Eur (${formData.tem_regresso ? 'ida e volta' : 'apenas ida'})` : ''}
  
-Total: ${totalCusto.toFixed(2)}€
- 
-Obrigado desde já,
-Os meus cumprimentos,
-
-${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
+Total: ${totalCusto.toFixed(2)}€`
 
     return content
   }, [formData])
@@ -775,7 +768,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
-      className="flex justify-between mt-4 pt-4 border-t border-gray-200"
+      className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-4 pt-4 border-t border-gray-200"
     >
       <motion.div
         whileHover={{ scale: 1.02 }}
@@ -805,7 +798,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           <Button
             onClick={nextStep}
             disabled={!isStepCompleted(currentStep)}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed relative group"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed disabled:hover:from-gray-400 disabled:hover:to-gray-500 relative group"
             title="Avançar (Enter ou →)"
           >
             Próximo
@@ -818,19 +811,20 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           </Button>
         </motion.div>
       ) : (
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            className="flex-1 sm:flex-initial"
           >
             <Button
               onClick={sendEmail}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 relative group"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 relative group"
               title="Enviar Email (Ctrl+E)"
             >
               <Send className="h-4 w-4" />
-              Enviar Email
-              <kbd className="hidden group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+              <span className="whitespace-nowrap">Enviar Email</span>
+              <kbd className="hidden sm:group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
                 Ctrl + E
               </kbd>
             </Button>
@@ -838,11 +832,12 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            className="flex-1 sm:flex-initial"
           >
             <Button
               onClick={generateExcel}
               disabled={isGeneratingExcel}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 relative group"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 relative group"
               title="Download Excel (Ctrl+D)"
             >
               {isGeneratingExcel ? (
@@ -859,8 +854,8 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
               ) : (
                 <>
                   <Download className="h-4 w-4" />
-                  Download Excel
-                  <kbd className="hidden group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+                  <span className="whitespace-nowrap">Download Excel</span>
+                  <kbd className="hidden sm:group-hover:inline-block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
                     Ctrl + D
                   </kbd>
                 </>
@@ -1237,7 +1232,7 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-4 flex-1 overflow-y-auto">
+            <CardContent className="p-4 flex-1">
               <div className="max-w-4xl mx-auto space-y-4">
                 {/* Toggle para viagem de regresso */}
                 <motion.div
@@ -1350,18 +1345,45 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                           className="text-sm h-9 mt-1 w-full"
                         />
                       </div>
-                      <div>
-                        <Label className="text-xs text-gray-600">Hora de Partida</Label>
-                        <TimePicker
-                          value={formData.comboio_ida.hora}
-                          onSelect={(time) => setFormData(prev => ({
-                            ...prev,
-                            comboio_ida: { ...prev.comboio_ida, hora: time }
-                          }))}
-                          placeholder="HH:mm"
-                          className="text-sm h-9 mt-1 w-full"
-                        />
-                      </div>
+                      {/* Alfa Pendular schedule suggestions for Porto-Lisboa */}
+                      {(formData.comboio_ida.local_partida.toLowerCase().includes('porto') && 
+                        formData.comboio_ida.local_chegada.toLowerCase().includes('lisboa')) && (
+                        <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-xs font-semibold text-green-800 mb-1">Horários Alfa Pendular Porto → Lisboa (CP.pt):</p>
+                          <div className="flex flex-wrap gap-1">
+                            {['05:40', '06:40', '07:40', '09:40', '11:40', '13:40', '14:40', '16:40', '17:40', '18:40', '19:45'].map(time => (
+                              <button
+                                key={time}
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  comboio_ida: { ...prev.comboio_ida, hora: time }
+                                }))}
+                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                  formData.comboio_ida.hora === time
+                                    ? 'bg-green-500 text-white border-green-600'
+                                    : 'bg-white border border-green-300 hover:bg-green-100'
+                                }`}
+                              >
+                                {time}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="mt-2">
+                            <Label className="text-xs text-gray-600">Ou introduza outra hora:</Label>
+                            <Input
+                              type="time"
+                              lang="pt-PT"
+                              value={formData.comboio_ida.hora}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                comboio_ida: { ...prev.comboio_ida, hora: e.target.value }
+                              }))}
+                              className="text-sm h-9 mt-1 w-full"
+                            />
+                          </div>
+                          <p className="text-xs text-green-600 mt-2">Preço: 37,50€ por viagem (75€ ida e volta corporativo)</p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
 
@@ -1395,18 +1417,45 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
                               className="text-sm h-9 mt-1 w-full"
                             />
                           </div>
-                          <div>
-                            <Label className="text-xs text-gray-600">Hora de Partida</Label>
-                            <TimePicker
-                              value={formData.comboio_regresso.hora}
-                              onSelect={(time) => setFormData(prev => ({
-                                ...prev,
-                                comboio_regresso: { ...prev.comboio_regresso, hora: time }
-                              }))}
-                              placeholder="HH:mm"
-                              className="text-sm h-9 mt-1 w-full"
-                            />
-                          </div>
+                          {/* Alfa Pendular schedule suggestions for Lisboa-Porto */}
+                          {(formData.comboio_regresso.local_partida.toLowerCase().includes('lisboa') && 
+                            formData.comboio_regresso.local_chegada.toLowerCase().includes('porto')) && (
+                            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                              <p className="text-xs font-semibold text-green-800 mb-1">Horários Alfa Pendular Lisboa → Porto (CP.pt):</p>
+                              <div className="flex flex-wrap gap-1">
+                                {['07:09', '08:09', '09:09', '10:09', '12:09', '14:09', '16:09', '17:09', '18:09', '19:09', '20:09'].map(time => (
+                                  <button
+                                    key={time}
+                                    onClick={() => setFormData(prev => ({
+                                      ...prev,
+                                      comboio_regresso: { ...prev.comboio_regresso, hora: time }
+                                    }))}
+                                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                                      formData.comboio_regresso.hora === time
+                                        ? 'bg-green-500 text-white border-green-600'
+                                        : 'bg-white border border-green-300 hover:bg-green-100'
+                                    }`}
+                                  >
+                                    {time}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="mt-2">
+                                <Label className="text-xs text-gray-600">Ou introduza outra hora:</Label>
+                                <Input
+                                  type="time"
+                                  lang="pt-PT"
+                                  value={formData.comboio_regresso.hora}
+                                  onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    comboio_regresso: { ...prev.comboio_regresso, hora: e.target.value }
+                                  }))}
+                                  className="text-sm h-9 mt-1 w-full"
+                                />
+                              </div>
+                              <p className="text-xs text-green-600 mt-2">Preço: 37,50€ por viagem (75€ ida e volta corporativo)</p>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -1862,9 +1911,27 @@ ${formData.colaborador.primeiro_nome} ${formData.colaborador.apelido}`
     }
   }
 
-  // Se não estiver autenticado, mostrar tela de login
-  if (!isAuthenticated) {
-    return <Auth onAuthenticated={handleAuthenticated} />
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="text-6xl mb-4"
+          >
+            ⏳
+          </motion.div>
+          <p className="text-gray-600">A carregar...</p>
+        </motion.div>
+      </div>
+    )
   }
 
   return (

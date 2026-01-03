@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import Providers from "@/components/Providers";
 // import { Inter } from "next/font/google";
 // import { Montserrat } from "next/font/google";
 // Prevent fontawesome from adding its CSS since we did it manually above:
@@ -35,8 +36,9 @@ export default function RootLayout({
       </head>
       <body className={` `}>
         <main>
-          {" "}
-         {children}
+          <Providers>
+            {children}
+          </Providers>
         </main>
        
       </body>

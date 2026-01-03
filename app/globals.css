@@ -194,6 +194,31 @@ body {
   }
 }
 
+/* Prevent hover effects on disabled or active buttons */
+button:disabled:hover {
+  cursor: not-allowed;
+}
+
+/* Ensure buttons don't overflow on small screens */
+@media (max-width: 640px) {
+  button {
+    @apply text-xs;
+  }
+  
+  .container {
+    @apply px-2;
+  }
+}
+
+/* Fix button text truncation */
+button {
+  @apply overflow-hidden;
+}
+
+button span {
+  @apply truncate;
+}
+
 
 @keyframes firstIndicator {
   0% {
