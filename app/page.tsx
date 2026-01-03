@@ -1232,7 +1232,7 @@ Total: ${totalCusto.toFixed(2)}€`
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-4 flex-1 overflow-y-auto">
+            <CardContent className="p-4 flex-1">
               <div className="max-w-4xl mx-auto space-y-4">
                 {/* Toggle para viagem de regresso */}
                 <motion.div
@@ -1372,6 +1372,7 @@ Total: ${totalCusto.toFixed(2)}€`
                             <Label className="text-xs text-gray-600">Ou introduza outra hora:</Label>
                             <Input
                               type="time"
+                              lang="pt-PT"
                               value={formData.comboio_ida.hora}
                               onChange={(e) => setFormData(prev => ({
                                 ...prev,
@@ -1443,6 +1444,7 @@ Total: ${totalCusto.toFixed(2)}€`
                                 <Label className="text-xs text-gray-600">Ou introduza outra hora:</Label>
                                 <Input
                                   type="time"
+                                  lang="pt-PT"
                                   value={formData.comboio_regresso.hora}
                                   onChange={(e) => setFormData(prev => ({
                                     ...prev,
